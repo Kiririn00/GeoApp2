@@ -20,17 +20,21 @@ class ArticleController extends AppController{
 	}
 
 	public function Test(){
-		/*
-		if ($this->request->data) {
-			if ($this->Post->save($this->request->data)) {
-				$this->Session->setFlash('Post has been added successfully');
-				$this->redirect(array('action' => 'index'));
-			} else {
-				$this->Session->setFlash('Error occured, Please try agan later!');
+
+		$this->layout = ('default_backup');
+		
+		if($this->request->is('post'))
+		{
+			$exif = exif_read_data($_FILES["imagefile"]["tmp_name"][0], 0, true);
+			if($exif){
+				//var_dump($exif); //exifの全情報
+				$this->set('exif',$exif);
+			}else{
+				echo "Exif情報がありません";
 			}
-		}*/
-
-
+			
+		}
+		
 	}
 	
 	public function DeleteAll(){
@@ -118,7 +122,7 @@ class ArticleController extends AppController{
 		
 		//set Location all data by UserId
 		$this->set('LocationData',$this->Location->find('all',array(
-			'conditions' => array('Location.user_id' => $UserId)
+			'conditions' => array('Location   .user_id' => $UserId)
 		)));
 		
 		//set count number of row by UserId

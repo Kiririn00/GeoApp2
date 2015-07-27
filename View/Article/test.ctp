@@ -1,23 +1,116 @@
-
-<h2>Add New Post</h2>
+<!-- this is view of test.ctp -->
 <?php
-echo $this->Form->create('ArticleContent');
-echo $this->Form->input('login');
-echo $this->Form->input('password');
-echo $this->Form->submit('Submit');
-echo $this->Form->end();
+/*
+echo "test1.jpg:<br />\n";
+$exif = exif_read_data('/GeoApp/app/webroot/img/233_article.jpg', 'FILE');
+echo $exif===false ? "No header data found.<br />\n" : "Image contains headers<br />\n";
+
+debug($exif);
+ */
+header("Content-Type: text/plain; charset=utf-8");
+echo $this->Form->create(false,array(
+	'action' => 'Test',
+	'type' => 'post',
+	'enctype' => 'multipart/form-data',
+
+));
 ?>
 
-<photo id="4424" secret="06b8e43bc7" server="2">
-  <exif tagspace="TIFF" tagspaceid="1" tag="271" label="Manufacturer">
-    <raw>Canon</raw>
-  </exif>
-  <exif tagspace="EXIF" tagspaceid="0" tag="33437" label="Aperture">
-    <raw>90/10</raw>
-    <clean>f/9</clean>
-  </exif>
-  <exif tagspace="GPS" tagspaceid="3" tag="4" label="Longitude">
-    <raw>64/1, 42/1, 4414/100</raw>
-    <clean>64° 42' 44.14&quot;</clean>
-  </exif>
-</photo>
+<input type="file" multiple="multiple" name="imagefile[]" >    
+
+<?php
+echo $this->Form->end('submit');
+
+//@debug($exif);
+//@var_dump($exif);
+//Degrees + minutes/60 + seconds/3600
+?>
+<h3>GPS's data</h3>
+<?php
+@debug($exif['GPS']);
+?>
+
+<h3>GPS's Latitude</h3><br />
+<?php
+@debug($exif['GPS']['GPSLatitude']);
+$degree_cal_1 = before('/',$exif['GPS']['GPSLatitude'][0]);
+$degree_cal_2 = after('/',$exif['GPS']['GPSLatitude'][0]);
+$degree = $degree_cal_1 / $degree_cal_2;
+
+$minutes_cal_1 = before('/',$exif['GPS']['GPSLatitude'][1]);
+$minutes_cal_2 = after('/',$exif['GPS']['GPSLatitude'][1]);
+$minutes = $minutes_cal_1 / $minutes_cal_2;
+
+
+$seconds_cal_1 = before('/',$exif['GPS']['GPSLatitude'][2]);
+$seconds_cal_2 = after('/',$exif['GPS']['GPSLatitude'][2]);
+$seconds = $seconds_cal_1 / $seconds_cal_2;
+
+$latitude = $degree+($minutes/60)+($seconds/3600);
+debug($latitude);
+?>
+
+<h3>GPS's Longitude</h3><br />
+<?php
+@debug($exif['GPS']['GPSLatitude']);
+$degree_cal_1 = before('/',$exif['GPS']['GPSLongitude'][0]);
+$degree_cal_2 = after('/',$exif['GPS']['GPSLongitude'][0]);
+$degree = $degree_cal_1 / $degree_cal_2;
+
+$minutes_cal_1 = before('/',$exif['GPS']['GPSLongitude'][1]);
+$minutes_cal_2 = after('/',$exif['GPS']['GPSLongitude'][1]);
+$minutes = $minutes_cal_1 / $minutes_cal_2;
+
+
+$seconds_cal_1 = before('/',$exif['GPS']['GPSLongitude'][2]);
+$seconds_cal_2 = after('/',$exif['GPS']['GPSLongitude'][2]);
+$seconds = $seconds_cal_1 / $seconds_cal_2;
+
+$longitude = $degree+($minutes/60)+($seconds/3600);
+debug($longitude);
+?>
+
+
+<!--substr function -->
+<?php
+
+    function after ($this, $inthat)
+    {
+        if (!is_bool(strpos($inthat, $this)))
+        return substr($inthat, strpos($inthat,$this)+strlen($this));
+    };
+
+    function after_last ($this, $inthat)
+    {
+        if (!is_bool(strrevpos($inthat, $this)))
+        return substr($inthat, strrevpos($inthat, $this)+strlen($this));
+    };
+
+    function before ($this, $inthat)
+    {
+        return substr($inthat, 0, strpos($inthat, $this));
+    };
+
+    function before_last ($this, $inthat)
+    {
+        return substr($inthat, 0, strrevpos($inthat, $this));
+    };
+
+    function between ($this, $that, $inthat)
+    {
+        return before ($that, after($this, $inthat));
+    };
+
+    function between_last ($this, $that, $inthat)
+    {
+     return after_last($this, before_last($that, $inthat));
+    };
+
+// use strrevpos function in case your php version does not include it
+function strrevpos($instr, $needle)
+{
+    $rev_pos = strpos (strrev($instr), strrev($needle));
+    if ($rev_pos===false) return false;
+    else return strlen($instr) - $rev_pos - strlen($needle);
+};
+?>
