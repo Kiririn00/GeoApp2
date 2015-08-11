@@ -25,7 +25,7 @@ class ArticleController extends AppController{
 		
 		if($this->request->is('post'))
 		{
-			$exif = exif_read_data($_FILES["imagefile"]["tmp_name"][0], 0, true);
+			$exif = exif_read_data($_FILES["ArticleImage_0"]["tmp_name"][0], 0, true);
 			if($exif){
 				//var_dump($exif); //exifの全情報
 				$this->set('exif',$exif);
@@ -39,8 +39,8 @@ class ArticleController extends AppController{
 	
 	public function DeleteAll(){
 		
-		$this->Article->deleteAll();
-		$this->ArticleContent->deleteAll();
+		$this->Article->deleteAll(array('1 = 1'));
+		$this->ArticleContent->deleteAll(array('1 = 1'));
 		$this->redirect(array(
 			'action' => 'Home'	
 		));
@@ -212,7 +212,7 @@ class ArticleController extends AppController{
 			echo $SetFeildCount = $_POST['set_feild_count'];
 			
 			//Validate image for ArticleContentImage
-			$FileArray = $this->request->data['ArticleImage_0'];
+			$FileArray = $_FILES["ArticleImage_0"];
 			
 			//Save text data to ArticleContent
 
@@ -222,8 +222,20 @@ class ArticleController extends AppController{
 				//Save to ArticleContent
 				for($i=0;$i<$SetFeildCount;$i++)
 				{
+					//get location name's post data
 					$LocationName = $_POST['location_name_'.$i];
+					//get detail's post data
 					$ArticleDetail = $_POST['article_detail_'.$i];
+					//get location's table detail
+					$location_data = $this->Location->find('all');
+					$location_data_count = $this->Location->find('count');
+					/*
+							$ArticleContentData = $this->ArticleContent->find('all',array(
+							'conditions' => array('ArticleContent.article_id' => $ArticleId)
+						)); 
+					*/
+					
+											
 					$this->ArticleContent->create();
 					$this->ArticleContent->save(array(
 							'article_id' => $ArticleId,
@@ -234,23 +246,107 @@ class ArticleController extends AppController{
 					
 					$ArticleContentId = $this->ArticleContent->getLastInsertId();
 					
-					$FileArray = $this->request->data['ArticleImage_'.$i];
+					$FileArray = $_FILES["ArticleImage_".$i];
 					$FileCount=count($FileArray);
-					var_dump($FileArray);
+					debug($FileArray);
 					
 					
 					//Save to ArticleContentImage
-					for($l=0;$l<$FileCount;$l++)
+					for($l=0;$l<1;$l++)
 					{
 						$this->ArticleContentImage->create();
 						$ArticleContentFilename = '/img/article_'.$ArticleId."_set".$i."_no".$l.".jpg";
-						$ImageLink=rename($FileArray[$l]['tmp_name'],WWW_ROOT.$ArticleContentFilename);
 						
+						debug(WWW_ROOT.$ArticleContentFilename);
+						debug($_FILES["ArticleImage_0"]["tmp_name"]);
+						$ImageLink=rename($_FILES["ArticleImage_".$i]["tmp_name"][0],WWW_ROOT.$ArticleContentFilename);
+												
 						$this->ArticleContentImage->save(array(
 							'article_content_id' => $ArticleContentId,
 							'article_id' => $ArticleId,	
 							'image_name' => $ArticleContentFilename
 						));
+						
+						//get exif data
+						$exif = exif_read_data($_FILES["imagefile"]["tmp_name"][0], 0, true);
+						
+						//$exif = exif_read_data($_FILES["ArticleImage_0"]['tmp_name'][0], 0, true);//ArticleImage_0[]
+						debug("have exif");
+						
+						//check image have lat,log or not?
+						if($exif['GPS']){
+							//have exif_data(gps data)
+							//@debug($exif['GPS']['GPSLatitude']);
+							debug("have exif");
+							//get GPS's Latitude
+							$degree_cal_1 = before('/',$exif['GPS']['GPSLatitude'][0]);
+							$degree_cal_2 = after('/',$exif['GPS']['GPSLatitude'][0]);
+							$degree = $degree_cal_1 / $degree_cal_2;
+							
+							$minutes_cal_1 = before('/',$exif['GPS']['GPSLatitude'][1]);
+							$minutes_cal_2 = after('/',$exif['GPS']['GPSLatitude'][1]);
+							$minutes = $minutes_cal_1 / $minutes_cal_2;
+														
+							$seconds_cal_1 = before('/',$exif['GPS']['GPSLatitude'][2]);
+							$seconds_cal_2 = after('/',$exif['GPS']['GPSLatitude'][2]);
+							$seconds = $seconds_cal_1 / $seconds_cal_2;
+							
+							$latitude = $degree+($minutes/60)+($seconds/3600);
+							
+							//get GPS's Logitude
+							$degree_cal_1 = before('/',$exif['GPS']['GPSLongitude'][0]);
+							$degree_cal_2 = after('/',$exif['GPS']['GPSLongitude'][0]);
+							$degree = $degree_cal_1 / $degree_cal_2;
+							
+							$minutes_cal_1 = before('/',$exif['GPS']['GPSLongitude'][1]);
+							$minutes_cal_2 = after('/',$exif['GPS']['GPSLongitude'][1]);
+							$minutes = $minutes_cal_1 / $minutes_cal_2;
+							
+							$seconds_cal_1 = before('/',$exif['GPS']['GPSLongitude'][2]);
+							$seconds_cal_2 = after('/',$exif['GPS']['GPSLongitude'][2]);
+							$seconds = $seconds_cal_1 / $seconds_cal_2;
+							
+							$longitude = $degree+($minutes/60)+($seconds/3600);
+							
+							for($k=0;$k<$location_data_count;$k++){
+								if(
+										$latitude<$location_data[$k]['Location']['latitude']+0.0027 || $latitude<$location_data[$k]['Location']['latitude']-0.0027 &&
+										$longitude<$location_data[$k]['Location']['longitude']+0.0027 || $longitude<$location_data[$k]['Location']['longitude'][$k]-0.0027
+								){
+									$this->ArticleLocation->create();
+									$this->ArticleLocation->save(array(
+											'article_id' => $ArticleId,
+											'article_location_name' => $LocationName,
+											'detail' => $ArticleDetail,
+											'location_id' => $location_data[$k]['Location']['location_id'],
+											'location_memo' => $location_data[$k]['Location']['location_memo'],
+											'latitude' => $latitude,
+											'longitude' => $longitude
+									));
+									break;
+								}//end if
+								else{
+									debug('not match');
+								}//end else
+								
+							}//end loop for
+							/*
+							$this->ArticleLocation->create();
+							$this->ArticleLocation->save(array(
+									'article_id' => $ArticleId,
+									'article_location_name' => $LocationName,
+									'detail' => $ArticleDetail,
+									'location_id' => $location_data['location_id'],
+									'location_memo' => $location_memo['location_memo'],
+									'latitude' => $latitude,
+									'longitude' => $longitude
+							));
+							*/
+								
+						}
+						else{
+							//not have exif_data
+						}
 					}//end for loop FileCount
 					
 					$this->Session->write('ArticleId',$ArticleId);
@@ -260,9 +356,11 @@ class ArticleController extends AppController{
 			}//end else	
 			
 			//When Everything are done
+				
 			$this->redirect(array(
-				'action' => 'SelectLocation'
+				'action' => 'Home'
 			));
+			
 											
 		}//end if post request
 		
@@ -322,7 +420,7 @@ class ArticleController extends AppController{
 					'longitude' => $Long		 	
 				));
 								
-			}
+			}//end for loop
 			
 			//everything is done
 			$this->redirect(array(
@@ -695,6 +793,47 @@ class ArticleController extends AppController{
 	}//end EditLocation function
 
 }//end class
+
+//sub str function
+function after ($this, $inthat)
+{
+	if (!is_bool(strpos($inthat, $this)))
+		return substr($inthat, strpos($inthat,$this)+strlen($this));
+};
+
+function after_last ($this, $inthat)
+{
+	if (!is_bool(strrevpos($inthat, $this)))
+		return substr($inthat, strrevpos($inthat, $this)+strlen($this));
+};
+
+function before ($this, $inthat)
+{
+	return substr($inthat, 0, strpos($inthat, $this));
+};
+
+function before_last ($this, $inthat)
+{
+	return substr($inthat, 0, strrevpos($inthat, $this));
+};
+
+function between ($this, $that, $inthat)
+{
+	return before ($that, after($this, $inthat));
+};
+
+function between_last ($this, $that, $inthat)
+{
+	return after_last($this, before_last($that, $inthat));
+};
+
+// use strrevpos function in case your php version does not include it
+function strrevpos($instr, $needle)
+{
+	$rev_pos = strpos (strrev($instr), strrev($needle));
+	if ($rev_pos===false) return false;
+	else return strlen($instr) - $rev_pos - strlen($needle);
+};
 
 
 

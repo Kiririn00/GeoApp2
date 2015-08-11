@@ -59,11 +59,14 @@ echo $this->Html->script('AddRemoveField');
 		<?php 
 			echo $this->Form->input('Article.file', array(
 				'type' => 'file', 'multiple',
-				'name' => 'data[ArticleImage_0][]',
+				'name' => 'ArticleImage_0[]',
 				'label' => false
 			)); 
 		?>
+		<input type="file" multiple="multiple" name="imagefile[]" >  
+
 	</div>
+
 
 
 
